@@ -3,24 +3,35 @@ const width = document.querySelector("#chart").clientWidth;
 const height = document.querySelector("#chart").clientHeight;
 const margin = { top: 50, left: 150, right: 50, bottom: 150 };
 
+// TODO: Sum the raw cotton imports across all categories/subtypes to get the height
+
 const svg = d3.select("#chart")
     .append("svg")
     .attr("width", width)
     .attr("height", height);
 
-d3.csv("./data/gapminder.csv", parse).then(function (data) {
+const btn = d3.select('#btn');
+
+d3.csv("./data/US_Textile_Fiber_Trade.csv", parse).then(function (data) {
 
     /* filter subset of data, grabbing only the rows where the country = China */
-    const filtered = data.filter(d => d.country === "China");
+    const filtered = data.filter(d => d.import_export === "import" && d.fiber_type === "raw_cotton" && d.year === 2020);
+
+    let nested = d3.nest()
+            .key(d => d.month)
+            .rollup(d => d3.sum(d, v => v.value))
+            .entries(filtered);
+
+    nested.forEach(d => d.key = +d.key);
 
     //scales: we'll use a band scale for the bars
     const xScale = d3.scaleBand()
-        .domain(filtered.map(d => d.year))
+        .domain(nested.map(d => d.key))
         .range([margin.left, width - margin.right])
         .padding(0.1);
 
     const yScale = d3.scaleLinear()
-        .domain([0, d3.max(filtered, d => d.gdpPercap)])
+        .domain([0, d3.max(nested, d => d.value)])
         .range([height - margin.bottom, margin.top]);
 
 
@@ -30,13 +41,13 @@ d3.csv("./data/gapminder.csv", parse).then(function (data) {
     */
 
     let bar = svg.selectAll("rect")
-        .data(filtered)
+        .data(nested)
         .enter()
         .append("rect")
-        .attr("x", d => xScale(d.year))
-        .attr("y", d => yScale(d.gdpPercap))
+        .attr("x", d => xScale(d.key))
+        .attr("y", d => yScale(d.value))
         .attr("width", xScale.bandwidth())
-        .attr("height", d => height - margin.bottom - yScale(d.gdpPercap))
+        .attr("height", d => height - margin.bottom - yScale(d.value))
         .attr("fill", "black");
 
     const xAxis = svg.append("g")
@@ -48,30 +59,38 @@ d3.csv("./data/gapminder.csv", parse).then(function (data) {
         .attr("class", "axis")
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft().scale(yScale)
-        .tickFormat(d3.format("$.2s")));
+        // .tickFormat(d3.format("$.2s"))
+        );
 
     const xAxisLabel = svg.append("text")
         .attr("class", "axisLabel")
         .attr("x", width / 2)
         .attr("y", height - margin.bottom / 2)
-        .text("Year");
+        .text("Month");
 
     const yAxisLabel = svg.append("text")
         .attr("class", "axisLabel")
         .attr("transform", "rotate(-90)")
         .attr("x", -height / 2)
         .attr("y", margin.left / 2)
-        .text("GDP Per Capita");
+        .text("Total Value by Month");
 
 });
+
+// Interactivity example
+btn.on('click', () => {
+    svg.selectAll("rect").attr("fill", 'blue')
+})
 
 //get the data in the right format
 function parse(d) {
     return {
-        country: d.country,
-        year: +d.year,
-        lifeExp: +d.lifeExp,
-        gdpPercap: +d.gdpPercap
+        fiber_type: d.fiber_type, //cotton, silk, wool, etc.
+        import_export: d.import_export, //this is a binary value
+        category: d.category, //yarn, apparel, home, etc.
+        sub_category: d.sub_category, //type of yarn, type of home
+        year: +d.year, //we want this as a number
+        month: +d.month, //we want this as a number
+        value: +d.value //we want this as a number
     }
 }
-
