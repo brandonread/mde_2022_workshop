@@ -14,24 +14,29 @@ const btn = d3.select('#btn');
 
 d3.csv("./data/US_Textile_Fiber_Trade.csv", parse).then(function (data) {
 
-    /* filter subset of data, grabbing only the rows where the country = China */
+    /* filter subset of data (raw cotton imports for 2020) */
     const filtered = data.filter(d => d.import_export === "import" && d.fiber_type === "raw_cotton" && d.year === 2020);
 
-    let nested = d3.nest()
-            .key(d => d.month)
-            .rollup(d => d3.sum(d, v => v.value))
-            .entries(filtered);
+    // Sum values (rollup) grouped by (nest) month into {key,value} dataset
+    // Result: [{key = month, value = sum}]
+    let totalByMonth = d3.nest()
+            .key(d => d.month) // Group data by month
+            .rollup(d => d3.sum(d, v => v.value)) // Rollup the values (by month) into a single summed total
+            .entries(filtered); // Source data
+    
+    console.log('TOTAL BY MONTH', totalByMonth);
 
-    nested.forEach(d => d.key = +d.key);
+    // Transform to numerical keys (month)
+    totalByMonth.forEach(d => d.key = +d.key);
 
     //scales: we'll use a band scale for the bars
     const xScale = d3.scaleBand()
-        .domain(nested.map(d => d.key))
+        .domain(totalByMonth.map(d => d.key))
         .range([margin.left, width - margin.right])
         .padding(0.1);
 
     const yScale = d3.scaleLinear()
-        .domain([0, d3.max(nested, d => d.value)])
+        .domain([0, d3.max(totalByMonth, d => d.value)])
         .range([height - margin.bottom, margin.top]);
 
 
@@ -41,7 +46,7 @@ d3.csv("./data/US_Textile_Fiber_Trade.csv", parse).then(function (data) {
     */
 
     let bar = svg.selectAll("rect")
-        .data(nested)
+        .data(totalByMonth)
         .enter()
         .append("rect")
         .attr("x", d => xScale(d.key))
