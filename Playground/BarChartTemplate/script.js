@@ -14,6 +14,66 @@ const btn = d3.select('#btn');
 
 d3.csv("./data/US_Textile_Fiber_Trade.csv", parse).then(function (data) {
 
+    // Data Structure (observed in Tableau GUI)
+    const rows = [
+        {
+            type: {
+                id: "dimension"
+            },
+            field: "Category",
+        },
+        {
+            type: {
+                id: "dimension"
+            },
+            field: "Sub Category",
+            sortBy: {
+                field: "Value",
+                order: -1, // Descending
+            }
+        },
+        {
+            type: {
+                id: "measure",
+                value: "sum"
+            },
+            field: "Value",
+        },
+        {
+            type: {
+                id: "measure",
+                value: "sum"
+            },
+            field: "Value",
+            calculation: {
+                type: "percentDifferenceFrom",
+                computeUsing: {
+                    dimensions: [
+                        "Year",
+                        "Month",
+                        "Category",
+                        "Sub Category",
+                    ],
+                    atTheLevel: "Year",
+                    relativeTo: "Next",
+                }
+            }
+        }
+    ];
+
+    /**
+     * TODO: Render an interactive chart displaying timeseries data where seasonality
+     * is readily observable, while emphasizing the %ΔYoY to reveal the impact of
+     * COVID-19 (supply chains, mask mandates, stay-at-home orders, etc) on the US
+     * textiles trade. Allow for glanceable comparisons across categories (and sub
+     * categories within a selected category) or fiber types to reveal similarities
+     * and differences between the small multiples. The chart should allow the user
+     * to filter out categories (and sub-categories) or fiber types in order to
+     * de-noise the data. The multiples should be sorted descending by trade volume
+     * to surface goods with greatest domestic demand.
+     */
+
+    // TODO: Replace below with code that powers the above requirements
     /* filter subset of data (raw cotton imports for 2020) */
     const filtered = data.filter(d => d.import_export === "import" && d.fiber_type === "raw_cotton" && d.year === 2020);
 
